@@ -1,17 +1,15 @@
 # minikube-cicd-boilerplate
 
-A simple CI/CD setup using minikube, GitHub Actions, and ArgoCD. Nothing fancy, but works.
+A simple GitOps template for minikube using ArgoCD and GitHub Actions. Nothing fancy, just works.
 
 ## What this does
 
-- Pushes code to GitHub
-- GitHub Actions builds a Docker image and pushes it to GitHub Container Registry
-- ArgoCD watches the repo and deploys to minikube automatically
-- You get a working web app at localhost:3000
+- CI: GitHub Actions builds and pushes Docker images to GHCR
+- CD: ArgoCD watches this repo and deploys to minikube
+- Infra: Ingress and namespaces are managed under `infrastructure/`
+- Apps: Business apps and monitoring (Prometheus + Grafana) are under `apps/`
 
 ## Prerequisites
-
-You'll need these installed:
 
 - Docker
 - minikube
@@ -28,92 +26,70 @@ You'll need these installed:
 
 ### Option 2: Manual setup
 
-### 1. Start minikube
+1. Start minikube and enable ingress
 
 ```bash
 minikube start
 minikube addons enable ingress
 ```
 
-### 2. Install ArgoCD
+2. Install ArgoCD
 
 ```bash
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-# Wait for ArgoCD to be ready (takes a few minutes)
 kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
 ```
 
-### 3. Get ArgoCD password
+3. Apply ArgoCD applications (infra + apps)
 
 ```bash
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+kubectl apply -f argocd-apps/
 ```
 
-### 4. Access ArgoCD UI
+## Accessing services
+
+- Add hosts (replace with your `minikube ip`):
+
+```
+192.168.49.2 boilerplate-dev.local grafana.local prometheus.local
+```
+
+- App via ingress: http://boilerplate-dev.local
+- Prometheus: http://prometheus.local
+- Grafana: http://grafana.local (admin/admin on first login)
+
+- ArgoCD (via port-forward):
 
 ```bash
-kubectl port-forward svc/argocd-server -n argocd 8080:443
+kubectl port-forward -n argocd svc/argocd-server 8080:443
+# open https://localhost:8080
 ```
 
-Go to https://localhost:8080
-
-- Username: admin
-- Password: (the one you got from step 3)
-
-### 5. Deploy the app
+Get admin password:
 
 ```bash
-kubectl apply -f cd/argo-cd.yaml
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 
-### 6. Access your app
+## Troubleshooting (ingress)
+
+- Host mapping:
 
 ```bash
-kubectl port-forward service/boilerplate-web 3000:80
+echo "$(minikube ip) boilerplate-dev.local grafana.local prometheus.local" | sudo tee -a /etc/hosts
 ```
 
-Open http://localhost:3000 in your browser.
-
-## How it works
-
-The `app/` directory is a git submodule pointing to the actual application code. When you push changes:
-
-1. GitHub Actions builds a Docker image
-2. Pushes it to GitHub Container Registry
-3. ArgoCD detects the change
-4. Deploys the new image to minikube
-
-## Troubleshooting
-
-### Port already in use
+- Check routes:
 
 ```bash
-lsof -i :8080
-lsof -i :3000
-# Kill the process if needed
+kubectl describe ingress -n default boilerplate-web | sed -n '1,120p'
+kubectl describe ingress -n monitoring monitoring-ingress | sed -n '1,120p'
 ```
 
-### ArgoCD not syncing
+- Endpoints must exist:
 
 ```bash
-kubectl get applications -n argocd
-kubectl describe application boilerplate-web -n argocd
+kubectl get ep -n default boilerplate-web
+kubectl get ep -n monitoring grafana prometheus
 ```
-
-### App not working
-
-```bash
-kubectl get pods
-kubectl logs -l app=boilerplate-web
-kubectl describe service boilerplate-web
-```
-
-## Files
-
-- `ci/github-action-workflow.yaml` - GitHub Actions workflow
-- `argocd-apps/` - ArgoCD application definitions
-- `apps/` - Application Kubernetes manifests
-- `infrastructure/` - Infrastructure manifests (ingress, monitoring, etc.)
-- `app/` - Source code (git submodule)
