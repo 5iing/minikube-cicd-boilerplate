@@ -6,8 +6,5 @@ namespace: default
 resources:
   - ../../base
 
-patchesStrategicMerge:
-  - ingress-patch.yaml
-
 commonLabels:
   environment: dev
