@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
 - ingress.yaml
-- monitoring-ingress.yaml
 
 commonLabels:
   managed-by: argocd
