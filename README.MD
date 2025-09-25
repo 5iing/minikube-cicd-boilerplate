@@ -1,6 +1,6 @@
 # minikube-cicd-boilerplate
 
-A simple CI/CD setup using minikube, GitHub Actions, and ArgoCD. Nothing fancy, just works.
+A simple CI/CD setup using minikube, GitHub Actions, and ArgoCD. Nothing fancy, but works.
 
 ## What this does
 
@@ -113,8 +113,7 @@ kubectl describe service boilerplate-web
 ## Files
 
 - `ci/github-action-workflow.yaml` - GitHub Actions workflow
-- `cd/argo-cd.yaml` - ArgoCD application config
-- `app/manifests/` - Kubernetes manifests (git submodule)
-- `manifests/ingress.yaml` - Ingress config for external access
-
-That's it. Pretty straightforward.
+- `argocd-apps/` - ArgoCD application definitions
+- `apps/` - Application Kubernetes manifests
+- `infrastructure/` - Infrastructure manifests (ingress, monitoring, etc.)
+- `app/` - Source code (git submodule)

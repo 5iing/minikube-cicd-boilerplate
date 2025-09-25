@@ -6,14 +6,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/5iing/docker-sample-image # change this
+    repoURL: https://github.com/5iing/docker-sample-image
     targetRevision: main
     path: manifests
-
   destination:
     server: https://kubernetes.default.svc
     namespace: default
-
   syncPolicy:
     automated:
       prune: true
